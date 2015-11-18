@@ -1,0 +1,52 @@
+<style>
+html, body {
+    margin: 0px;
+    padding: 0px;
+}
+html, body, #map {
+    width: 100%;
+    height: 100%;
+}
+label {
+    display: block;
+}
+</style>
+
+<div id="selectors"></div>
+<div id="map"></div>
+
+<script src="//code.jquery.com/jquery-2.1.4.min.js" charset="utf-8"></script>
+<script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+<script>
+var color = {};
+var MetroData = MetroData || {};
+$.ajax({
+  url: 'http://api.wmata.com/Rail.svc/json/jLines',
+  dataType: 'jsonp',
+  data: {
+    'api_key': '4b653ad0d0d046fe8bf14cfaa76d0fa8'
+  },
+  success: function(data){
+    MetroData.Lines = data.Lines;
+    MetroData.Lines.forEach(function(d,i) {
+        color[d.LineCode] = d.DisplayName.toLowerCase();
+    });
+
+    var checkbox = d3.select("#selectors").selectAll('input[type="checkbox"')
+            .data(MetroData.Lines)
+        .enter().append("label");
+    checkbox.append("input")
+            .attr("type", "checkbox")
+            .attr("name", "metro-line")
+            .attr("value", function(d) { return d.LineCode; })
+            .property("checked", true)
+            .on("click", changeLines);
+    checkbox.append("span")
+            .text(function(d) { return d.DisplayName; })
+  }
+});
+function changeLines(d,i){
+    console.log(d,i);
+}
+</script>
