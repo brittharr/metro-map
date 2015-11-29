@@ -1,4 +1,11 @@
-var color = {},
+var color = {
+      'GR': '#00B760',
+      'RD': '#C40043',
+      'BL': '#0072C6',
+      'OR': '#E28C05',
+      'YL': '#F9D616',
+      'SV': '#a1a3a1'
+    },
     lines = {};
 var MetroData = MetroData || {},
     initialSelection = [];
@@ -10,7 +17,7 @@ $.ajax({
   },
   success: function(data){
     data.Lines.forEach(function(d,i) {
-        color[d.LineCode] = d.DisplayName.toLowerCase();
+        // color[d.LineCode] = d.DisplayName.toLowerCase();
         lines[d.LineCode] = d.DisplayName + " Line";
         initialSelection.push(d.LineCode);
     });
@@ -53,7 +60,7 @@ function voronoiMap(map, data, initialSelections){
     cell.classed('selected', true);
 
     d3.select('#selected h1')
-      .html('')
+        .html('')
       .append('a')
         .text(point.name)
         .attr('href', point.url)
@@ -61,26 +68,25 @@ function voronoiMap(map, data, initialSelections){
   }
 
   var drawPointTypeSelection = function() {
-    console.log(pointTypes);
     showHide('#selections')
     labels = d3.select('#toggles').selectAll('input')
-      .data(pointTypes.values())
+        .data(pointTypes.values())
       .enter().append("label");
 
     labels.append("input")
-      .attr('type', 'checkbox')
-      .property('checked', function(d) {
-        return initialSelections === undefined || initialSelections.has(d.type)
-      })
-      .attr("value", function(d) { return d.type; })
-      .on("change", drawWithLoading);
+        .attr('type', 'checkbox')
+        .property('checked', function(d) {
+          return initialSelections === undefined || initialSelections.has(d.type)
+        })
+        .attr("value", function(d) { return d.type; })
+        .on("change", drawWithLoading);
 
     labels.append("span")
-      .attr('class', 'key')
-      .style('background-color', function(d) { return d.color; });
+        .attr('class', 'key')
+        .style('background-color', function(d) { return d.color; });
 
     labels.append("span")
-      .text(function(d) { return d.type; });
+        .text(function(d) { return d.type; });
   }
 
   var selectedTypes = function() {
@@ -110,7 +116,6 @@ function voronoiMap(map, data, initialSelections){
   }
 
   var draw = function() {
-    console.log("DRAW");
     d3.select('#overlay').remove();
 
     var bounds = map.getBounds(),
@@ -120,7 +125,6 @@ function voronoiMap(map, data, initialSelections){
         drawLimit = bounds.pad(0.4);
 
     filteredPoints = pointsFilteredToSelectedTypes().filter(function(d) {
-        // console.log(d);
       var latlng = new L.LatLng(d.Lat, d.Lon);
 
       if (!drawLimit.contains(latlng)) { return false };
@@ -140,15 +144,15 @@ function voronoiMap(map, data, initialSelections){
 
 
     var svg = d3.select(map.getPanes().overlayPane).append("svg")
-      .attr('id', 'overlay')
-      .attr("class", "leaflet-zoom-hide")
-      .style("width", map.getSize().x + 'px')
-      .style("height", map.getSize().y + 'px')
-      .style("margin-left", topLeft.x + "px")
-      .style("margin-top", topLeft.y + "px");
+        .attr('id', 'overlay')
+        .attr("class", "leaflet-zoom-hide")
+        .style("width", map.getSize().x + 'px')
+        .style("height", map.getSize().y + 'px')
+        .style("margin-left", topLeft.x + "px")
+        .style("margin-top", topLeft.y + "px");
 
     var g = svg.append("g")
-      .attr("transform", "translate(" + (-topLeft.x) + "," + (-topLeft.y) + ")");
+        .attr("transform", "translate(" + (-topLeft.x) + "," + (-topLeft.y) + ")");
 
     var svgPoints = g.attr("class", "points")
       .selectAll("g")
@@ -161,22 +165,82 @@ function voronoiMap(map, data, initialSelections){
     }
 
     svgPoints.append("path")
-      .attr("class", "point-cell")
-      .attr("d", buildPathFromPoint)
-      .on('click', selectPoint)
-      .classed("selected", function(d) { return lastSelectedPoint == d} );
+        .attr("class", "point-cell")
+        .attr("d", buildPathFromPoint)
+        .on('click', selectPoint)
+        .on('mouseover', function(d){
+          d3.select(this.parentNode).select(".label")
+              .attr("opacity", 1);
+        })
+        .on('mouseout', function(d){
+          d3.select(this.parentNode).select(".label")
+              .attr("opacity", 0);
+        })
+        .classed("selected", function(d) { return lastSelectedPoint == d} );
 
     svgPoints.append("circle")
-      .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
-      .style('fill', function(d) {
-        var currentSelectedTypes = d3.set(selectedTypes());
-        return currentSelectedTypes.has(d.LineCode1) ? color[d.LineCode1] :
-            currentSelectedTypes.has(d.LineCode2) ? color[d.LineCode2] :
-            currentSelectedTypes.has(d.LineCode3) ? color[d.LineCode3] :
-            currentSelectedTypes.has(d.LineCode4) ? color[d.LineCode4] :
-            "black";
+        .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+        .each(function(d,i) {
+          var currentSelectedTypes = d3.set(selectedTypes()),
+              colorList = [];
+          for (var j = 1; j <= 4; j++) {
+            if (currentSelectedTypes.has(d['LineCode'+j])) { colorList.push(color[d['LineCode'+j]]); }
+          }
+
+          var length = colorList.length;
+          if (length == 1) {
+            d3.select(this).style('fill', colorList[0]);
+          }
+          else if (length > 1) {
+            var gradient = svg.append('defs')
+              .append('linearGradient')
+                .attr('id', 'gradient'+i)
+                .attr('x1', '0%')
+                .attr('x2', '100%')
+                .attr('y1', '0%')
+                .attr('y2', '100%');
+            gradient.append('stop')
+                .attr('offset', '0%')
+                .style('stop-color', colorList[0]);
+            var stopLength = 100/length;
+            for (var k = 1; k < length; k++) {
+              gradient.append('stop')
+                  .attr('offset', (stopLength * k) + '%')
+                  .style('stop-color', colorList[k-1]);
+              gradient.append('stop')
+                  .attr('offset', (stopLength * k) + '%')
+                  .style('stop-color', colorList[k]);
+            }
+            gradient.append('stop')
+                .attr('offset', '100%')
+                .style('stop-color', colorList[length-1]);
+            d3.select(this).style('fill', 'url(#gradient'+i+')');
+          }
         })
-      .attr("r", 4);
+        .attr("r", 6);
+
+    var labels = svgPoints.append("g")
+        .attr("class", "label")
+        .attr("transform", function(d) { return "translate(" + (d.x+15) + "," + (d.y) + ")"; })
+        .attr("opacity", 0);
+    labels.append("rect")
+        .attr("fill", "#fff")
+        .attr("opacity", 0.8)
+        .each(function(d){
+          var that = this;
+          setTimeout(function(){
+            var bbox = that.parentNode.getBBox();
+            d3.select(that)
+                .attr("width", bbox.width+10)
+                .attr("height", bbox.height+10)
+                .attr("x", -5)
+                .attr("y", -bbox.height);
+          }, 1);
+        });
+    labels.append("text")
+        .attr("class", "label__text")
+        .text(function(d){ return d.Name; })
+        .attr("dy", "0.3em");
   }
 
   var mapLayer = {
@@ -187,30 +251,26 @@ function voronoiMap(map, data, initialSelections){
   };
 
   map.on('ready', function() {
-    // d3.csv(url, function(csv) {
-      points = data;
-      console.log(points);
-      points.forEach(function(point) {
-        // console.log(point);
-        pointTypes.set(point.LineCode1, {type: point.LineCode1, color: color[point.LineCode1]});
-      })
-      drawPointTypeSelection();
-      map.addLayer(mapLayer);
-    // })
+    points = data;
+    points.forEach(function(point) {
+      pointTypes.set(point.LineCode1, {type: point.LineCode1, color: color[point.LineCode1]});
+    })
+    drawPointTypeSelection();
+    map.addLayer(mapLayer);
   });
 }
 
 function showHide(selector) {
   d3.select(selector).select('.hide').on('click', function(){
     d3.select(selector)
-      .classed('visible', false)
-      .classed('hidden', true);
+        .classed('visible', false)
+        .classed('hidden', true);
   });
 
   d3.select(selector).select('.show').on('click', function(){
     d3.select(selector)
-      .classed('visible', true)
-      .classed('hidden', false);
+        .classed('visible', true)
+        .classed('hidden', false);
   });
 }
 
